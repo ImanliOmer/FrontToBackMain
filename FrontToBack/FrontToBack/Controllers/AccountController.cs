@@ -2,7 +2,9 @@
 using FrontToBack.ViewModels;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using System;
 using System.Threading.Tasks;
+using static FrontToBack.Helpers.Helpers;
 
 namespace FrontToBack.Controllers
 {
@@ -51,7 +53,8 @@ namespace FrontToBack.Controllers
                 return View(register);
             
             }
-          await  _signInManager.SignInAsync(user,true);
+         
+            await _userManager.AddToRoleAsync(user, UserRoles.Member.ToString());
             return RedirectToAction("index", "Home");
 
         }
@@ -62,7 +65,7 @@ namespace FrontToBack.Controllers
         }
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Login(LoginVM loginVM)
+        public async Task<IActionResult> Login(LoginVM loginVM,string ReturnUrl )
         {
             if (!ModelState.IsValid) return View();
 
@@ -85,6 +88,22 @@ namespace FrontToBack.Controllers
                 return View();
             }
 
+            await _signInManager.SignInAsync(appUser, true);
+            var roles = await _userManager.GetRolesAsync(appUser);
+            foreach (var item in roles)
+            {
+                if (item=="Admin")
+                {
+                    return RedirectToAction("index", "dashboard", new { area="AdminPanel"});
+
+                }
+            }
+
+            if (ReturnUrl!=null)
+            {
+                return Redirect(ReturnUrl);
+            }
+
 
             return RedirectToAction("index", "Home");
         }
@@ -93,9 +112,23 @@ namespace FrontToBack.Controllers
 
         { 
         await _signInManager.SignOutAsync();
+
             return RedirectToAction("Login");  
         }
-
+        public async Task CreateRole()
+        {
+            foreach (var item in Enum.GetValues(typeof(UserRoles)))
+            {
+                if (!await _rolemanager.RoleExistsAsync(item.ToString()))
+                {
+                    await _rolemanager.CreateAsync(new IdentityRole { Name = item.ToString() });
+               
+                
+                
+                }
+            }
+        
+        }
 
 
     }

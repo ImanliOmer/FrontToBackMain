@@ -1,11 +1,13 @@
 ﻿using FrontToBack.DAL;
 using FrontToBack.Extentions;
 using FrontToBack.Models;
+using FrontToBack.ViewModels;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -24,9 +26,24 @@ namespace FrontToBack.Areas.AdminPanel.Controllers
             _env = env;
         }
 
-        public IActionResult Index()
+        public IActionResult Index(int page=1,int take=5)
         {
-            return View(_context.Products.Include(p=>p.Category).ToList());
+         
+            List<Product> products = _context.Products.Include(p => p.Category).Skip((page-1)*take).Take(take).ToList();
+          
+            PaginationVM<Product> paginationVM = new PaginationVM<Product>(products, PageCount(take), page);
+            
+            
+            return View(paginationVM);
+      
+        
+        
+        }
+        private int PageCount(int take)
+        {
+            List<Product> products = _context.Products.ToList();
+            return (int)Math.Ceiling((decimal)products.Count()/ take);
+        
         }
         public async Task<IActionResult> Detail(int? id)
 
@@ -94,5 +111,48 @@ namespace FrontToBack.Areas.AdminPanel.Controllers
             _context.SaveChanges();
             return RedirectToAction("index");
         }
+        public async Task<IActionResult> Update(int? id)
+
+        {
+            if (id == null) return NotFound();
+            Product product= await _context.Products.FindAsync(id);
+            if (product == null) return NotFound();
+            return View(product);
+        }
+        [HttpPost]
+        public async Task<IActionResult> Update(Product product)
+        {
+            
+            if (!ModelState.IsValid)
+            {
+                return View();
+            }
+            Product products = _context.Products.FirstOrDefault(c => c.Id == product.Id);
+           Product productName = _context.Products.FirstOrDefault(c => c.Name.ToLower() == product.Name.ToLower());
+
+            if (product.Photo!=null)
+            {
+                products.ImageUrl = product.Photo.SaveImage(_env, "img");
+
+            }
+            if (productName != null)
+            {
+                if (productName.Name != products.Name)
+                {
+                    ModelState.AddModelError("Name", "bu adli product var var");
+                    return View();
+                }
+            }
+
+
+            products.Name = product.Name;
+            products.Price = product.Price;
+       
+            await _context.SaveChangesAsync();
+            return RedirectToAction("index");
+
+
+        }
+
     }
 }

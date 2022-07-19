@@ -23,6 +23,10 @@ namespace FrontToBack.Controllers
             homeVm.SliderContent = _context.SliderContents.FirstOrDefault();
             homeVm.Categories= _context.Categories.ToList();
             homeVm.Products = _context.Products.Include(p=>p.Category).ToList();
+            homeVm.Experts=_context.Experts.ToList();
+            homeVm.Blogs=_context.Blogs.ToList();
+            homeVm.CaruselBlogs=_context.CaruselBlogs.ToList();
+            homeVm.Instagrams= _context.Instagrams.ToList();
             return View(homeVm);
         }
         public IActionResult SearchProduct(string search) 
